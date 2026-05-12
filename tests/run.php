@@ -85,6 +85,7 @@ s_articles_group('package', function () use ($root): void {
 
         s_articles_assert(($composer['type'] ?? null) === 'evolution-cms-module', 'sArticles must stay an Evolution CMS module.');
         s_articles_assert(isset($composer['require']['evolution-cms/evo-ui']), 'sArticles must require evolution-cms/evo-ui.');
+        s_articles_assert(($composer['require']['evolution-cms/evo-ui'] ?? null) === '^1.0.1', 'sArticles must require the EvoUI release with stable filter reset handlers.');
         s_articles_assert(($composer['extra']['laravel']['providers'][0] ?? null) === 'Seiger\\sArticles\\sArticlesServiceProvider', 'Service provider must stay registered.');
         s_articles_assert(!isset($composer['extra']['laravel']['aliases']), 'Facade alias must be registered by the service provider, not generated as a custom alias file.');
         s_articles_assert(($composer['scripts']['test'] ?? null) === 'php tests/run.php', 'Composer test script must run the compatibility suite.');
@@ -109,6 +110,8 @@ s_articles_group('package', function () use ($root): void {
 s_articles_group('module-shell', function (): void {
     s_articles_test('module panel uses evo-ui form/table shell and dirty navigation guard', function (): void {
         $panel = s_articles_read('views/livewire/module-panel.blade.php');
+        $shell = s_articles_read('views/articles/shell.blade.php');
+        $provider = s_articles_read('src/sArticlesServiceProvider.php');
 
         foreach ([
             '<livewire:evo-ui.form',
@@ -121,6 +124,12 @@ s_articles_group('module-shell', function (): void {
         ] as $marker) {
             s_articles_assert_contains($marker, $panel, 'Missing evo-ui module panel marker: ' . $marker);
         }
+
+        s_articles_assert_contains("@include('evo::partials.assets')", $shell, 'sArticles shell must load EvoUI through the public shared asset partial.');
+        s_articles_assert_contains('function evoUiPublishables(): array', $provider, 'sArticles must publish EvoUI assets with its own publish tag.');
+        s_articles_assert_contains("public_path('assets/modules/evo-ui/evo-ui.css')", $provider, 'EvoUI CSS must be published to the public assets directory.');
+        s_articles_assert_contains("public_path('assets/modules/evo-ui/evo-ui.js')", $provider, 'EvoUI JS must be published to the public assets directory.');
+        s_articles_assert(!str_contains($shell, 'core/vendor/evolution-cms/evo-ui/resources/'), 'The manager shell must not expose vendor asset URLs.');
     });
 });
 

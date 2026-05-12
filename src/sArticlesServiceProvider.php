@@ -72,7 +72,7 @@ class sArticlesServiceProvider extends ServiceProvider
                 dirname(__DIR__) . '/images/seigerit-blue.svg' => public_path('assets/site/seigerit-blue.svg'),
                 dirname(__DIR__) . '/views/s_articles_article.blade.php' => public_path('views/s_articles_article.blade.php'),
                 dirname(__DIR__) . '/builder/note/icon-note.svg' => public_path('assets/images/sarticles/icon-note.svg'),
-            ], 'sarticles');
+            ] + $this->evoUiPublishables(), 'sarticles');
         }
 
     }
@@ -133,5 +133,30 @@ class sArticlesServiceProvider extends ServiceProvider
         $this->app->alias(sArticles::class, 'sArticles');
 
         AliasLoader::getInstance()->alias('sArticles', sArticlesFacade::class);
+    }
+
+    /**
+     * Include EvoUI public assets in the sArticles publish flow.
+     *
+     * The manager shell loads EvoUI from the public `assets/modules/evo-ui` directory through the
+     * shared `evo::partials.assets` partial. Publishing those files with the `sarticles` tag keeps
+     * fresh installs and upgrades from serving stale JavaScript while avoiding direct browser access
+     * to `core/vendor`, which is commonly blocked on production servers.
+     *
+     * @return array<string, string> Publishable EvoUI asset paths keyed by source file.
+     * @since 2.1.0
+     */
+    protected function evoUiPublishables(): array
+    {
+        $root = defined('EVO_CORE_PATH')
+            ? rtrim(EVO_CORE_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'vendor/evolution-cms/evo-ui'
+            : dirname(__DIR__, 3) . '/evolution-cms/evo-ui';
+
+        $assets = [
+            $root . '/resources/css/evo-ui.css' => public_path('assets/modules/evo-ui/evo-ui.css'),
+            $root . '/resources/js/evo-ui.js' => public_path('assets/modules/evo-ui/evo-ui.js'),
+        ];
+
+        return array_filter($assets, static fn ($target, $source) => is_file($source), ARRAY_FILTER_USE_BOTH);
     }
 }
